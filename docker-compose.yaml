@@ -1,0 +1,41 @@
+services:
+  server:
+    build:
+      context: .
+    env_file:
+      - .env
+    # switch before distributing docker-compose to always pull the latest image from docker hub
+    image: sogni/sogni-stable-diffusion-worker:latest
+    # this will restart the container if it crashes or stops for any reason except for a manual stop by the user
+    # this includes when the computer is restarted or the docker service is restarted.
+    # change the value to "always" to always start with computer, even if manually stopped for the current computer session
+    # change to "no" to never start the container automatically. Set this value if you always want to manually start and stop the Sogni Worker
+    restart: unless-stopped
+    # this will pull the latest image from docker hub every time the container is started manually or automatically through docker-compose
+    pull_policy: always
+    ports:
+      - 8000:8000
+      - "${WEBUI_PORT:-7860}:7860"
+    # network_mode: host
+    volumes:
+    - ./data:/data
+    - ./data-models:/data-models
+    # replace above with the path to your existing manual install of Automatic1111's models folder if you have one you would like to use
+    # - /c/Users/markl/Documents/git/stable-diffusion-webui/models:/data-models
+    - ./output:/output
+    stop_signal: SIGTERM
+    tty: true
+    deploy:
+      # if you want to have the worker automatically restart but only after it has been manually started by the you:
+      # comment out [restart: unless-stopped] above and uncomment the following lines
+      # in this scenario it will wait 60 seconds before restarting and will attempt to restart 60 times before giving up
+      # restart_policy:
+      #  condition: always
+      #  delay: 60s
+      #  max_attempts: 60
+      resources:
+        reservations:
+          devices:
+              - driver: nvidia
+                device_ids: ['0']
+                capabilities: [compute, utility]
